@@ -1,81 +1,77 @@
-var dog,sadDog,happyDog, database;
-var foodS,foodStock;
-var fedTime,lastFed;
-var feed,addFood;
-var foodObj;
+const Engine = Matter.Engine;
+const World = Matter.World;
+const Bodies = Matter.Bodies;
+var thunder, thunder1,thunder2,thunder3,thunder4;
+
+var engine, world;
+var drops = [];
+var rand;
+
+var maxDrops=100;
+
+var thunderCreatedFrame=0;
 
 function preload(){
-sadDog=loadImage("Images/Dog.png");
-happyDog=loadImage("Images/happy dog.png");
+    thunder1 = loadImage("thunderbolt/1.png");
+    thunder2 = loadImage("thunderbolt/2.png");
+    thunder3 = loadImage("thunderbolt/3.png");
+    thunder4 = loadImage("thunderbolt/4.png");
 }
 
-function setup() {
-  database=firebase.database();
-  createCanvas(1000,400);
+function setup(){
+    engine = Engine.create();
+    world = engine.world;
 
-  foodObj = new Food();
+    createCanvas(400,700);
+    umbrella = new Umbrella(200,500);
 
-  foodStock=database.ref('Food');
-  foodStock.on("value",readStock);
-  
-  dog=createSprite(800,200,150,150);
-  dog.addImage(sadDog);
-  dog.scale=0.15;
-  
-  feed=createButton("Feed the dog");
-  feed.position(700,95);
-  feed.mousePressed(feedDog);
+    //creating drops
+    if(frameCount % 150 === 0){
 
-  addFood=createButton("Add Food");
-  addFood.position(800,95);
-  addFood.mousePressed(addFoods);
+        for(var i=0; i<maxDrops; i++){
+            drops.push(new createDrop(random(0,400), random(0,400)));
+        }
 
+    }
+    
 }
 
-function draw() {
-  background(46,139,87);
-  foodObj.display();
+function draw(){
+    Engine.update(engine);
+    background(0); 
 
-  fedTime=database.ref('FeedTime');
-  fedTime.on("value",function(data){
-    lastFed=data.val();
-  });
- 
-  fill(255,255,254);
-  textSize(15);
-  if(lastFed>=12){
-    text("Last Feed : "+ lastFed%12 + " PM", 350,30);
-   }else if(lastFed==0){
-     text("Last Feed : 12 AM",350,30);
-   }else{
-     text("Last Feed : "+ lastFed + " AM", 350,30);
-   }
- 
-  drawSprites();
-}
+    //creating thunder
+    rand = Math.round(random(1,4));
+    if(frameCount%80===0){
+        thunderCreatedFrame=frameCount;
+        thunder = createSprite(random(10,370), random(10,30), 10, 10);
+        switch(rand){
+            case 1: thunder.addImage(thunder1);
+            break;
+            case 2: thunder.addImage(thunder2);
+            break; 
+            case 3: thunder.addImage(thunder3);
+            break;
+            case 4: thunder.addImage(thunder4);
+            break;
+            default: break;
+        }
+        thunder.scale = random(0.3,0.6)
+    }
 
-//function to read food Stock
-function readStock(data){
-  foodS=data.val();
-  foodObj.updateFoodStock(foodS);
-}
+    if(thunderCreatedFrame + 10 ===frameCount && thunder){
+        thunder.destroy();
+    }
 
+    umbrella.display();
 
-//function to update food stock and last fed time
-function feedDog(){
-  dog.addImage(happyDog);
+    //displaying rain drops
+    for(var i = 0; i<maxDrops; i++){
+        drops[i].showDrop();
+        drops[i].updateY()
+        
+    }
 
-  foodObj.updateFoodStock(foodObj.getFoodStock()-1);
-  database.ref('/').update({
-    Food:foodObj.getFoodStock(),
-    FeedTime:hour()
-  })
-}
+    drawSprites();
+}   
 
-//function to add food in stock
-function addFoods(){
-  foodS++;
-  database.ref('/').update({
-    Food:foodS
-  })
-}
